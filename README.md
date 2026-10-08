@@ -1,4 +1,4 @@
-# 开始靠左 · 图标居中（稳定版）
+# 开始靠左 · 图标居中
 
 A [Windhawk](https://windhawk.net/) mod for Windows 11: **pins the Start button to the far left of the taskbar while the remaining icons stay centered.**
 
@@ -36,20 +36,42 @@ A [Windhawk](https://windhawk.net/) mod for Windows 11: **pins the Start button 
 
 ## 安装
 
-1. 安装 [Windhawk](https://windhawk.net/)。
-2. 新建 Mod → 粘贴 [`taskbar-split-align.wh.cpp`](taskbar-split-align.wh.cpp) 的内容 → 保存并启用。
-3. 保持任务栏对齐方式为“居中”。
-
-## 本地构建（可选）
-
-需要本机已安装 Windhawk（脚本默认使用 1.7.3 的编译器路径）：
+### 方式一：一键脚本（推荐）
 
 ```powershell
-.\build.ps1                 # 输出 build\local@taskbar-split-align_1.0.0.dll
-.\build.ps1 -Version 1.0.1  # 指定版本号
+git clone https://github.com/caa-siu-cat/taskbar-split-align.git
+cd taskbar-split-align
+.\install-mod.ps1
 ```
 
-无需额外工具链。若你的 Windhawk 版本不同，请调整 [`build.ps1`](build.ps1) 中的引擎 / 编译器路径。
+脚本会把源码写进 Windhawk 的 `ModsSource` 目录并顺带编译一次。Windhawk 没有命令行接口，
+所以最后需要在它的窗口里把插件**关掉再打开一次**（或重启 Windhawk）才会加载新版本。
+
+> 若提示脚本未签名：`powershell -ExecutionPolicy Bypass -File .\install-mod.ps1`，
+> 或先执行 `Unblock-File .\install-mod.ps1`。
+
+### 方式二：手动粘贴
+
+1. 安装 [Windhawk](https://windhawk.net/)。
+2. 新建 Mod → 粘贴 [`taskbar-split-align.wh.cpp`](taskbar-split-align.wh.cpp) 的**全部内容**（含 `// ==WindhawkMod==` 注释块）→ 保存并启用。
+3. 保持任务栏对齐方式为“居中”。
+
+> ⚠️ `@id` 是 Windhawk 区分插件的唯一标识。粘贴时不要改动它，否则会多出一个插件而不是更新现有的。
+
+## 构建
+
+用 Windhawk 自带的编译器构建，不需要额外工具链：
+
+```powershell
+.\build-mod.ps1                 # 输出 build\local@taskbar-split-align_1.0.0.dll
+.\build-mod.ps1 -Version 1.0.1  # 指定版本号
+```
+
+Windhawk 安装路径、编译器与引擎版本都会自动探测（取最高版本号目录），所以升级 Windhawk 后无需改脚本。
+若装在非默认位置，设置环境变量 `WINDHAWK_PATH` 指向它即可。
+
+每次 push 后 GitHub Actions 也会自动编译一次（见 [`.github/workflows/build.yml`](.github/workflows/build.yml)），
+可在 Actions 页面的 artifacts 里直接下载编译好的 DLL。
 
 ## 验证
 
@@ -69,8 +91,10 @@ A [Windhawk](https://windhawk.net/) mod for Windows 11: **pins the Start button 
 | 路径 | 说明 |
 | --- | --- |
 | `taskbar-split-align.wh.cpp` | Mod 源码（当前维护版本） |
-| `build.ps1` | 本机构建脚本 |
+| `install-mod.ps1` | 一键安装 / 更新到本机 Windhawk |
+| `build-mod.ps1` | 本机构建脚本（自动探测 Windhawk 路径） |
 | `capture-taskbar.ps1` | 任务栏截图脚本 |
+| `.github/workflows/build.yml` | 每次 push 自动编译验证 |
 | `verification/` | 几何记录、截图与测试结果 |
 | `reference/` | 上游原版源码，仅作参考，未修改 |
 | `backup/` | 旧版本源码与注册表备份 |

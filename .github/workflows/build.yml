@@ -1,0 +1,67 @@
+name: Build mod
+
+# Verifies on every push and pull request that the mod still compiles, and
+# uploads the resulting DLL as a downloadable artifact.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.wh.cpp'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - '**.wh.cpp'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The mod is compiled with the same clang and engine that Windhawk ships, so
+      # the DLL always matches a real Windhawk installation. The official installer
+      # can extract a portable copy without installing anything.
+      - name: Download and extract portable Windhawk
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $windhawkPath = Join-Path $env:RUNNER_TEMP 'windhawk'
+          $installerPath = Join-Path $env:RUNNER_TEMP 'windhawk_setup.exe'
+          $installerUrl = 'https://github.com/ramensoftware/windhawk/releases/latest/download/windhawk_setup.exe'
+
+          Write-Host "Downloading $installerUrl"
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+
+          Write-Host "Extracting to $windhawkPath"
+          New-Item -ItemType Directory -Path $windhawkPath -Force | Out-Null
+          $process = Start-Process -FilePath $installerPath -Wait -PassThru -ArgumentList @(
+            '/S', '/PORTABLE', "/D=$windhawkPath"
+          )
+          if ($process.ExitCode -ne 0) {
+            throw "Windhawk installer exited with code $($process.ExitCode)."
+          }
+          if (-not (Test-Path (Join-Path $windhawkPath 'Compiler'))) {
+            throw "Portable extraction produced no Compiler directory. Contents: $((Get-ChildItem $windhawkPath | Select-Object -ExpandProperty Name) -join ', ')"
+          }
+          Write-Host "Windhawk extracted successfully."
+
+      - name: Build mod
+        shell: pwsh
+        env:
+          WINDHAWK_PATH: ${{ runner.temp }}\windhawk
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./build-mod.ps1 -Output (Join-Path $env:RUNNER_TEMP 'mod.dll')
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskbar-split-align-dll
+          path: ${{ runner.temp }}/mod.dll
+          if-no-files-found: error

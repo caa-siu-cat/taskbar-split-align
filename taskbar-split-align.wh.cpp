@@ -1,11 +1,12 @@
 // ==WindhawkMod==
 // @id              taskbar-split-align
-// @name            Taskbar Split Alignment (Stable)
-// @name:zh-CN      开始靠左 · 图标居中（稳定版）
+// @name            Taskbar Split Alignment
+// @name:zh-CN      开始靠左 · 图标居中
 // @description     Pins Start through native taskbar layout, removes its space from the centered group, and keeps the Start menu centered.
 // @description:zh-CN 开始按钮固定左侧，其余图标重新居中，开始菜单保持居中。
 // @version         1.0.0
-// @author          m417z (original layout engine), Codex (adaptation)
+// @author          caa-siu-cat
+// @github          https://github.com/caa-siu-cat
 // @include         explorer.exe
 // @architecture    x86-64
 // @compilerOptions -ldwmapi -lole32 -loleaut32 -lruntimeobject
@@ -19,7 +20,7 @@
 
 // ==WindhawkModReadme==
 /*
-# 开始靠左 · 图标居中（稳定版）
+# 开始靠左 · 图标居中
 
 开始按钮固定到任务栏最左侧；其余图标由 Windows 原生布局重新居中。
 开始菜单仍按系统设置居中。请保持 Windows 的任务栏对齐方式为“居中”。
