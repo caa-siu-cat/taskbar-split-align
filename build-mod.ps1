@@ -5,12 +5,20 @@
 
 .DESCRIPTION
     Uses the compiler and engine that ship with the locally installed Windhawk, so
-    no extra toolchain is needed. The Windhawk path, compiler and engine version are
-    detected automatically and can be overridden with parameters or environment
-    variables:
+    no extra toolchain is needed. The Windhawk directory, compiler and engine
+    version are detected automatically and can be overridden with parameters or
+    environment variables:
 
         WINDHAWK_PATH      Windhawk installation directory
         WINDHAWK_ENGINE    engine version directory name, for example 1.7.3
+
+    Compiler arguments are passed in two ways on purpose: the two defines that
+    embed string literals go through a clang response file, and everything else
+    goes on the command line. A response file is tokenized by clang itself, so the
+    quoting of the string literals behaves the same no matter which PowerShell
+    hosts the build, while paths are left to the shell, which quotes them
+    correctly. Passing the defines on the command line instead would break under
+    Windows PowerShell 5.1 and PowerShell 7 in opposite ways.
 
 .PARAMETER Version
     Mod version to embed. Defaults to the @version value in the mod source.
@@ -130,44 +138,54 @@ function Get-ModMetadata {
     return ([regex]::Match($line, $pattern)).Groups[1].Value.Trim()
 }
 
+function Write-ResponseFile {
+    <#
+        Writes clang's @response file.
+
+        Quotes inside a value have to be backslash-escaped here, because clang
+        tokenizes the file itself and would otherwise strip them, turning
+        L"local@<id>" into the invalid token Llocal@<id>.
+    #>
+    param([string]$Path, [string[]]$Arguments)
+
+    $encoding = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllLines($Path, $Arguments, $encoding)
+}
+
 function Assert-DefineQuoting {
     <#
-        Guards the quoting trick used for -DWH_MOD_ID and -DWH_MOD_VERSION.
-
-        Compiles a throwaway program that builds only when those macros reach clang
-        as wide string literals. Without this check a host that strips the quotes
-        still produces a DLL, but one whose embedded mod id is the invalid token
-        Llocal@<id> instead of L"local@<id>".
+        Proves that the response file mechanism delivers the mod id as a wide
+        string literal before the real build relies on it. Compiles a throwaway
+        program that only builds when the macros arrive intact.
     #>
     param([string]$CompilerExe, [string]$ModId, [string]$ModVersion)
 
     $probeDirectory = Join-Path ([System.IO.Path]::GetTempPath()) 'windhawk-define-probe'
     New-Item -ItemType Directory -Path $probeDirectory -Force | Out-Null
     $probeSource = Join-Path $probeDirectory 'probe.cpp'
+    $probeArguments = Join-Path $probeDirectory 'probe.rsp'
     $probeBinary = Join-Path $probeDirectory 'probe.exe'
 
     Set-Content -LiteralPath $probeSource -Encoding ASCII -Value @(
-        '#include <cwchar>'
         'int main() {'
+        '    static_assert(sizeof(WH_MOD_ID) > 2, "mod id must be a wide string");'
         '    if (WH_MOD_ID[0] != L''l'') return 1;'
         '    if (WH_MOD_VERSION[0] < L''0'' || WH_MOD_VERSION[0] > L''9'') return 2;'
         '    return 0;'
         '}'
     )
 
-    Remove-Item -LiteralPath $probeBinary -ErrorAction SilentlyContinue
-    $probeArguments = @(
-        '-x', 'c++', '-std=c++23'
+    Write-ResponseFile -Path $probeArguments -Arguments @(
         "-DWH_MOD_ID=L\`"local@$ModId\`""
         "-DWH_MOD_VERSION=L\`"$ModVersion\`""
-        $probeSource, '-o', $probeBinary
     )
 
-    $diagnostics = & $CompilerExe @probeArguments 2>&1
+    Remove-Item -LiteralPath $probeBinary -ErrorAction SilentlyContinue
+    $diagnostics = & $CompilerExe -x c++ -std=c++23 "@$probeArguments" $probeSource -o $probeBinary 2>&1
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $probeBinary)) {
         throw @"
-Command line quoting check failed: clang did not receive -DWH_MOD_ID as a wide
-string literal, so the mod id would have been embedded as the invalid token
+Response file check failed: clang did not receive -DWH_MOD_ID as a wide string
+literal, so the mod id would have been embedded as the invalid token
 Llocal@$ModId. Compiler output:
 
 $($diagnostics | Select-Object -First 10 | Out-String)
@@ -225,26 +243,30 @@ Write-Host "Output        : $Output"
 
 Assert-DefineQuoting -CompilerExe $compilerExe -ModId $modId -ModVersion $Version
 
+$responseFile = Join-Path ([System.IO.Path]::GetTempPath()) "windhawk-$modId.rsp"
+
+# Only the defines go in the response file; see the note in the header. Quotes
+# inside the value must be backslash-escaped for clang's own tokenizer.
+Write-ResponseFile -Path $responseFile -Arguments @(
+    "-DWH_MOD_ID=L\`"local@$modId\`""
+    "-DWH_MOD_VERSION=L\`"$Version\`""
+)
+
 $arguments = @(
-    '-x', 'c++'
     '-std=c++23', '-O2', '-shared'
     '-DUNICODE', '-D_UNICODE'
     '-DWINVER=0x0A00', '-D_WIN32_WINNT=0x0A00', '-D_WIN32_IE=0x0A00'
     '-DNTDDI_VERSION=0x0A000008', '-D__USE_MINGW_ANSI_STDIO=0'
     '-DWH_MOD'
-    # The quotes are escaped with backslashes on purpose: Windows PowerShell drops
-    # plain double quotes when it builds the native command line, which would turn
-    # L"local@<id>" into the invalid token Llocal@<id>. Assert-DefineQuoting above
-    # verifies that the escaped form survives on the host running this script.
-    "-DWH_MOD_ID=L\`"local@$modId\`""
-    "-DWH_MOD_VERSION=L\`"$Version\`""
-    '-include', 'windhawk_api.h'
-    $Source
-    # -x c++ applies to every following file, so the import library must not be
-    # listed after it in source position; -x none restores extension-based
-    # detection for the rest of the command line.
-    '-x', 'none'
+    "@$responseFile"
+    # The import library comes before -x c++, because -x applies to everything that
+    # follows it and would make clang parse the library as C++ source.
     $engineLib
+    '-include', 'windhawk_api.h'
+    '-I', (Join-Path $compilerDir 'include')
+    '-L', (Join-Path $engineDir '64')
+    '-x', 'c++'
+    $Source
     '-target', 'x86_64-w64-mingw32'
     '-Wl,--export-all-symbols'
     '-Wall', '-Wextra', '-Wno-unused-parameter', '-Wno-missing-field-initializers'
@@ -263,6 +285,8 @@ try {
 } finally {
     Pop-Location
 }
+
+Remove-Item -LiteralPath $responseFile -Force -ErrorAction SilentlyContinue
 
 $result = Get-Item -LiteralPath $Output
 Write-Host ''
