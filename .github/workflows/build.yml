@@ -7,10 +7,13 @@ on:
     branches: [main]
     paths:
       - '**.wh.cpp'
+      - 'build-mod.ps1'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
       - '**.wh.cpp'
+      - 'build-mod.ps1'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 permissions:
