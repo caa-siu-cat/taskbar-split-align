@@ -1,0 +1,54 @@
+Taskbar Split Alignment (Stable)
+Copyright (C) 2025-2026 the Taskbar Split Alignment contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <https://www.gnu.org/licenses/>.
+
+--------------------------------------------------------------------------
+Attribution and modification notice (GPL-3.0 section 5)
+--------------------------------------------------------------------------
+
+This project is a modified version of:
+
+    Start button always on the left 1.3.3
+    Copyright (C) Michael Maltsev (m417z)
+    https://github.com/m417z/my-windhawk-mods
+    https://github.com/ramensoftware/windhawk-mods/blob/main/mods/taskbar-start-button-position.wh.cpp
+
+The upstream source is licensed under the GNU General Public License v3.0 and
+is included unmodified for reference in:
+    reference/taskbar-start-button-position.wh.cpp
+
+The pre-existing local fork superseded by this rewrite is included in:
+    backup/taskbar-split-align-0.4.0.wh.cpp
+
+Modifications made by this project (the "covered work" is the whole repository):
+
+  1. Only the Start button is pinned. Start menu, search flyout and task view
+     repositioning code from upstream was removed; those windows are no longer
+     hooked, and the mod loads into explorer.exe only.
+  2. The Start button is pinned by hooking the native taskbar
+     TaskbarCollapsibleLayout Arrange pass and removing the width it occupies
+     from the centered icon group, instead of the upstream timer-driven
+     Translation compensation.
+  3. The Start button is identified by AutomationId=StartButton rather than by
+     geometry heuristics.
+  4. Right-click Start context menu anchoring is fixed locally, independently of
+     Start menu placement.
+  5. Nested layout state save/restore and an opt-in geometry diagnostics mode
+     (disabled by default) were added.
+  6. Taskbar transparency is not modified.
+
+Modification date: 2026 (rewrite published as version 1.0.0).
+
+Files under verification/ are test harness output for this fork and are provided
+as-is; they are not part of the upstream project.

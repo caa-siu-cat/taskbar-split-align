@@ -1,0 +1,24 @@
+{
+  "OS": "Windows 11 25H2 26200.9457",
+  "Windhawk": "1.7.3",
+  "Version": "1.0.0",
+  "OpenCloseCycles": 56,
+  "LayoutSamples": 173,
+  "StartXMin": 0.0,
+  "StartXMax": 0.0,
+  "MinimumIcons": 8.0,
+  "MaximumIcons": 22.0,
+  "Settled": {
+    "Tick": 4397921,
+    "Width": 2048.0,
+    "Start": 0.0,
+    "First": 848.0,
+    "Last": 1200.0,
+    "IconCount": 8
+  },
+  "SettledGroupCenter": 1024.0,
+  "TaskbarCenter": 1024.0,
+  "UnloadRestoresNativeLayout": true,
+  "ExplorerRestarted": false,
+  "StartMenuVisualCheck": "Not completed: computer-use stopped on browser URL policy check; plugin includes explorer.exe only and does not modify StartMenuExperienceHost."
+}

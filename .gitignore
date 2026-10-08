@@ -1,0 +1,14 @@
+# Compiled Windhawk mod DLLs
+build/
+*.dll
+
+# Verification harness binaries (built from verification/taskbar-test-window.cpp)
+verification/alignment-test-*.exe
+verification/taskbar-test-window.exe
+
+# Windows / editor noise
+Thumbs.db
+desktop.ini
+*.swp
+.vs/
+.vscode/

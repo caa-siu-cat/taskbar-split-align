@@ -1,0 +1,11 @@
+# Normalize line endings in the repository to LF; Git converts on checkout per platform.
+* text=auto eol=lf
+
+# Windows scripts stay CRLF-friendly for PowerShell users
+*.ps1 text eol=crlf
+
+# Binary assets must never be converted
+*.png binary
+*.dll binary
+*.exe binary
+*.reg binary
