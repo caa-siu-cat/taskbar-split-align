@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # The mod is compiled with the same clang and engine that Windhawk ships, so
       # the DLL always matches a real Windhawk installation. The official installer
@@ -63,7 +63,7 @@ jobs:
           ./build-mod.ps1 -Output (Join-Path $env:RUNNER_TEMP 'mod.dll')
 
       - name: Upload DLL
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: taskbar-split-align-dll
           path: ${{ runner.temp }}/mod.dll
